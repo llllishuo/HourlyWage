@@ -4,6 +4,10 @@
 # Windows 批处理必须是 CRLF，否则 cmd.exe 会拆错语句
 *.cmd text eol=crlf
 
+# 脚本与网页必须 LF：CRLF 会让 Linux 上的 sh 报 "bad interpreter"
+*.sh text eol=lf
+*.html text eol=lf
+
 # 二进制
 *.exe binary
 *.dll binary

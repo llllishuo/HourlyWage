@@ -33,6 +33,9 @@ namespace HourlyWage
             }
 
             hourlyWage = (monthlySalary + bonus) / totalHours;
+
+            // 四舍五入到分。终端版（awk）与网页版（JS）用同一规则，三端结果便于逐条比对。
+            hourlyWage = Math.Round(hourlyWage, 2, MidpointRounding.AwayFromZero);
             return true;
         }
     }

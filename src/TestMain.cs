@@ -25,13 +25,17 @@ internal static class TestMain
 
         // 月薪 8000 + 奖金 1000，每日 8 小时，节假日 10 小时 → 9000 ÷ (8×21.75 + 10) = 9000/184
         Expect(WageCalculator.TryCompute(8000, 8, 10, 1000, out hourly, out error), "正常计算");
-        ExpectNear(9000.0 / 184.0, hourly, "含奖金与节假日工时的时薪");
-        Expect(hourly.ToString("0.00", CultureInfo.InvariantCulture) == "48.91", "保留两位小数 → 48.91");
+        ExpectNear(Round2(9000.0 / 184.0), hourly, "含奖金与节假日工时的时薪");
+        Expect(Format(hourly) == "48.91", "结果两位小数 → 48.91");
 
         // 无奖金、无节假日：8000 ÷ 174 = 45.977 → 45.98
         WageCalculator.TryCompute(8000, 8, 0, 0, out hourly, out error);
-        ExpectNear(8000.0 / 174.0, hourly, "纯月薪的时薪");
-        Expect(hourly.ToString("0.00", CultureInfo.InvariantCulture) == "45.98", "保留两位小数 → 45.98");
+        ExpectNear(Round2(8000.0 / 174.0), hourly, "纯月薪的时薪");
+        Expect(Format(hourly) == "45.98", "结果两位小数 → 45.98");
+
+        // 进位边界：7851.75 ÷ 174 = 45.125 正好落在半分上，必须向上进位（三端同一规则）
+        WageCalculator.TryCompute(7851.75, 8, 0, 0, out hourly, out error);
+        Expect(Format(hourly) == "45.13", "半分进位 45.125 → 45.13");
 
         // 异常输入必须被拒绝
         Expect(!WageCalculator.TryCompute(0, 0, 0, 0, out hourly, out error) && !string.IsNullOrEmpty(error),
@@ -41,7 +45,45 @@ internal static class TestMain
         Expect(!WageCalculator.TryCompute(8000, 8, -1, 0, out hourly, out error) && !string.IsNullOrEmpty(error),
             "负工时被拒绝");
 
+        // 供 test/consistency.sh 与终端版、网页版逐条比对
+        Console.WriteLine();
+        PrintValue(8000, 8, 0, 0);
+        PrintValue(8000, 8, 10, 1000);
+        PrintValue(12000, 7.5, 20, 2000);
+        PrintValue(6000, 8, 0, 0);
+        PrintValue(5000, 0, 100, 0);
+        PrintValue(0, 8, 0, 0);
+        PrintValue(100000, 8, 0, 50000);
+        PrintValue(7851.75, 8, 0, 0);
+
         Console.WriteLine(_failed == 0 ? "计算自检全部通过" : "失败项：" + _failed.ToString(CultureInfo.InvariantCulture));
+    }
+
+    private static void PrintValue(double salary, double hours, double holiday, double bonus)
+    {
+        double hourly;
+        string error;
+
+        string text = WageCalculator.TryCompute(salary, hours, holiday, bonus, out hourly, out error)
+            ? Format(hourly)
+            : "ERR";
+
+        Console.WriteLine("VALUE " + Num(salary) + " " + Num(hours) + " " + Num(holiday) + " " + Num(bonus) + " " + text);
+    }
+
+    private static double Round2(double value)
+    {
+        return Math.Round(value, 2, MidpointRounding.AwayFromZero);
+    }
+
+    private static string Format(double value)
+    {
+        return value.ToString("0.00", CultureInfo.InvariantCulture);
+    }
+
+    private static string Num(double value)
+    {
+        return value.ToString("0.##", CultureInfo.InvariantCulture);
     }
 
     private static void Expect(bool condition, string name)
